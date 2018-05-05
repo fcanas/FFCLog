@@ -1,3 +1,3 @@
 # FFCLog
 
-A description of this package.
+FFCLog oversimplifies logging in Swift.
