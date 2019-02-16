@@ -6,6 +6,7 @@
 //  Copyright © 2018 Fabián Cañas. All rights reserved.
 //
 
+import Darwin
 import Foundation
 
 public enum Level: Comparable {
@@ -15,13 +16,11 @@ public enum Level: Comparable {
     }
 
     case all
+    case info
     case debug
     case error
     case fatal
-    case info
     case off
-
-    public static var global: Level = .off
 
     private var value: UInt {
         get {
@@ -29,13 +28,13 @@ public enum Level: Comparable {
 
             case .all:
                 return 0
-            case .debug:
-                return 1
-            case .error:
-                return 2
-            case .fatal:
-                return 3
             case .info:
+                return 1
+            case .debug:
+                return 2
+            case .error:
+                return 3
+            case .fatal:
                 return 4
             case .off:
                 return UInt.max
@@ -44,8 +43,47 @@ public enum Level: Comparable {
     }
 }
 
-public func log(_ string: String, level: Level = .info) {
-    if level >= Level.global {
-        print(string)
+public protocol Logger {
+    func log(_ string: String, level: Level?)
+}
+
+public protocol LogOutputStream {
+    mutating func write(_ string: String)
+}
+
+public struct StandardOutput: LogOutputStream {
+    public init() {}
+    public func write(_ string: String) {
+        fputs(string, stdout)
     }
 }
+
+public struct StandardError: LogOutputStream {
+    public init() {}
+    public func write(_ string: String) {
+        fputs(string, stderr)
+    }
+}
+
+public class FFCLog: Logger {
+
+    private let thresholdLevel: Level
+    private var errorOutput: LogOutputStream
+    private var infoOutput: LogOutputStream
+
+    public init(thresholdLevel: Level = Level.off, errorOut: LogOutputStream = StandardError(), infoOut: LogOutputStream = StandardOutput()) {
+        self.thresholdLevel = thresholdLevel
+        errorOutput = errorOut
+        infoOutput = infoOut
+    }
+
+    public func log(_ string: String, level: Level?) {
+        if (level ?? .info) >= thresholdLevel {
+            infoOutput.write(string)
+        } else {
+            errorOutput.write(string)
+        }
+    }
+}
+
+
